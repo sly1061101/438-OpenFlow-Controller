@@ -93,6 +93,16 @@ class Tutorial (object):
     self.mac_to_port[str(packet.src)] = packet_in.in_port # ... <add or update entry>
     if str(packet.dst) in self.mac_to_port.keys():
       self.resend_packet(packet_in,self.mac_to_port[str(packet.dst)])
+      msg = of.ofp_flow_mod()
+      msg.match = of.ofp_match()
+      msg.match.dl_src = packet.src
+      msg.match.dl_dst = packet.dst
+      msg.match.in_port = packet_in.in_port
+      msg.idle_timeout = 60
+      msg.hard_timeout = 120
+      action = of.ofp_action_output(port = self.mac_to_port[str(packet.dst)])
+      msg.actions.append(action)
+      self.connection.send(msg)
     else:
       self.resend_packet(packet_in, of.OFPP_ALL)
     
