@@ -130,7 +130,24 @@ class Tutorial (object):
       # Flood the packet out everything but the input port
       # This part looks familiar, right?
       #self.resend_packet(packet_in, of.OFPP_ALL)
+  def act_like_router(seft, packet, packet_in):
+    # packet.payload   # ip.v4 or arp strips ethernet header(frame header, MAC)
+    # packet.payload.payload # ICMP or etc?
+    # packet.payload.payload.payload # echo/unreach packet
 
+
+    # if get ARP REQUEST packet
+    if (packet.payload.opcode == arp.REQUEST):
+      reply_packet = packet
+      reply_packet.dst = packet.src
+      reply_packet.src = packet.dst
+      reply_packet.payload.hwsrc = EthAddr(""04:ea:be:02:07:01"")
+      reply_packet.payload.hwdst = packet.hdsrc
+      reply_packet.payload.protodst = packet.protosrc
+      reply_packet.payload.protosrc = packet.protodst
+      reply_packet.payload.opcode = arp.REPLY
+
+      self.resend_packet(reply_packet, packet_in.inport)
 
 
   def _handle_PacketIn (self, event):
