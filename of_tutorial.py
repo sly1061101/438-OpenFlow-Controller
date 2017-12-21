@@ -80,27 +80,31 @@ class Tutorial (object):
 
 
   def act_like_switch (self, packet, packet_in):
+
     """
     Implement switch-like behavior.
     """
 
-    """ # DELETE THIS LINE TO START WORKING ON THIS (AND THE ONE BELOW!) #
 
     # Here's some psuedocode to start you off implementing a learning
     # switch.  You'll need to rewrite it as real Python code.
 
     # Learn the port for the source MAC
-    self.mac_to_port ... <add or update entry>
-
-    if the port associated with the destination MAC of the packet is known:
+    self.mac_to_port[str(packet.src)] = packet_in.in_port # ... <add or update entry>
+    if str(packet.dst) in self.mac_to_port.keys():
+      self.resend_packet(packet_in,self.mac_to_port[str(packet.dst)])
+    else:
+      self.resend_packet(packet_in, of.OFPP_ALL)
+    
+    #if the port associated with the destination MAC of the packet is known:
       # Send packet out the associated port
-      self.resend_packet(packet_in, ...)
+      #self.resend_packet(packet_in, ...)
 
       # Once you have the above working, try pushing a flow entry
       # instead of resending the packet (comment out the above and
       # uncomment and complete the below.)
 
-      log.debug("Installing flow...")
+      #log.debug("Installing flow...")
       # Maybe the log statement should have source/destination/port?
 
       #msg = of.ofp_flow_mod()
@@ -112,12 +116,11 @@ class Tutorial (object):
       #
       #< Add an output action, and send -- similar to resend_packet() >
 
-    else:
+    #else:
       # Flood the packet out everything but the input port
       # This part looks familiar, right?
-      self.resend_packet(packet_in, of.OFPP_ALL)
+      #self.resend_packet(packet_in, of.OFPP_ALL)
 
-    """ # DELETE THIS LINE TO START WORKING ON THIS #
 
 
   def _handle_PacketIn (self, event):
@@ -134,8 +137,8 @@ class Tutorial (object):
 
     # Comment out the following line and uncomment the one after
     # when starting the exercise.
-    self.act_like_hub(packet, packet_in)
-    #self.act_like_switch(packet, packet_in)
+    #self.act_like_hub(packet, packet_in)
+    self.act_like_switch(packet, packet_in)
 
 
 
