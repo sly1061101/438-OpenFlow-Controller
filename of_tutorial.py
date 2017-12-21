@@ -23,6 +23,8 @@ It's roughly similar to the one Brandon Heller did for NOX.
 
 from pox.core import core
 import pox.openflow.libopenflow_01 as of
+from pox.lib.packet.arp import arp
+from pox.lib.addresses import IPAddr, EthAddr
 
 log = core.getLogger()
 
@@ -130,7 +132,7 @@ class Tutorial (object):
       # Flood the packet out everything but the input port
       # This part looks familiar, right?
       #self.resend_packet(packet_in, of.OFPP_ALL)
-  def act_like_router(seft, packet, packet_in):
+  def act_like_router(self, packet, packet_in):
     # packet.payload   # ip.v4 or arp strips ethernet header(frame header, MAC)
     # packet.payload.payload # ICMP or etc?
     # packet.payload.payload.payload # echo/unreach packet
@@ -142,12 +144,12 @@ class Tutorial (object):
       reply_packet.dst = packet.src
       reply_packet.src = packet.dst
       reply_packet.payload.hwsrc = EthAddr("04:ea:be:02:07:01")
-      reply_packet.payload.hwdst = packet.hdsrc
-      reply_packet.payload.protodst = packet.protosrc
-      reply_packet.payload.protosrc = packet.protodst
+      reply_packet.payload.hwdst = packet.payload.hwsrc
+      reply_packet.payload.protodst = packet.payload.protosrc
+      reply_packet.payload.protosrc = packet.payload.protodst
       reply_packet.payload.opcode = arp.REPLY
 
-      self.resend_packet(reply_packet, packet_in.inport)
+      self.resend_packet(reply_packet, packet_in.in_port)
 
 
   def _handle_PacketIn (self, event):
