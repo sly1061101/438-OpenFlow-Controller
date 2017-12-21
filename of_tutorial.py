@@ -140,16 +140,20 @@ class Tutorial (object):
 
     # if get ARP REQUEST packet
     if (packet.payload.opcode == arp.REQUEST):
-      reply_packet = packet
-      reply_packet.dst = packet.src
-      reply_packet.src = packet.dst
-      reply_packet.payload.hwsrc = EthAddr("04:ea:be:02:07:01")
-      reply_packet.payload.hwdst = packet.payload.hwsrc
-      reply_packet.payload.protodst = packet.payload.protosrc
-      reply_packet.payload.protosrc = packet.payload.protodst
-      reply_packet.payload.opcode = arp.REPLY
+      tmpl1Eth = str(packet.src)
+      packet.src = EthAddr(str(packet.dst))
+      packet.dst = EthAddr(tmpl1Eth)
 
-      self.resend_packet(reply_packet, packet_in.in_port)
+      tmpl2Eth = str(packet.payload.hwsrc)
+      packet.payload.hwsrc = EthAddr("04:ea:be:02:07:01")
+      packet.payload.hwdst = EthAddr(tmpl2Eth)
+
+      tmpl2ip = str(packet.payload.protosrc)
+      packet.payload.protosrc = IPAddr(str(packet.payload.protodst))
+      packet.payload.protodst = IPAddr(tmpl2ip)
+      packet.payload.opcode = arp.REPLY
+
+      self.resend_packet(packet, packet_in.in_port)
 
 
   def _handle_PacketIn (self, event):
