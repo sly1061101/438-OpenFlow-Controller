@@ -141,7 +141,7 @@ class Tutorial (object):
       reply_packet = packet
       reply_packet.dst = packet.src
       reply_packet.src = packet.dst
-      reply_packet.payload.hwsrc = EthAddr(""04:ea:be:02:07:01"")
+      reply_packet.payload.hwsrc = EthAddr("04:ea:be:02:07:01")
       reply_packet.payload.hwdst = packet.hdsrc
       reply_packet.payload.protodst = packet.protosrc
       reply_packet.payload.protosrc = packet.protodst
@@ -165,7 +165,8 @@ class Tutorial (object):
     # Comment out the following line and uncomment the one after
     # when starting the exercise.
     #self.act_like_hub(packet, packet_in)
-    self.act_like_switch(packet, packet_in)
+    #self.act_like_switch(packet, packet_in)
+    self.act_like_router(packet, packet_in)
 
 
 
