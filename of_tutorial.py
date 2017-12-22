@@ -166,19 +166,20 @@ class Tutorial (object):
       if (packet.payload.opcode == arp.REPLY):
         self.mac_to_port[str(packet.src)] = packet_in.in_port
         self.ip_to_mac[str(packet.payload.protosrc)] = deepcopy(str(packet.payload.hwsrc))
-        for i in range(len(self.msg_queue)):
-          if self.msg_queue[i].payload.dstip  == packet.payload.protosrc :
-            self.msg_queue[i].dst = packet.payload.hwsrc
-            self.msg_queue[i].src = EthAddr(self.selfport_to_mac[packet_in.in_port])
-            self.resend_packet(self.msg_queue[i],packet_in.in_port)
-            del self.msg_queue[i]
+        # for i in range(len(self.msg_queue)):
+        #   if self.msg_queue[i].payload.dstip  == packet.payload.protosrc :
+        #     self.msg_queue[i].dst = packet.payload.hwsrc
+        #     self.msg_queue[i].src = EthAddr(self.selfport_to_mac[packet_in.in_port])
+        #     self.resend_packet(self.msg_queue[i],packet_in.in_port)
+        #     del self.msg_queue[i]
         return
 
     if (packet.type == ethernet.IP_TYPE):  # if it is IP packet
       # 1. if Ip is known
+      log.debug("ARP TABLE %d" % len(self.ip_to_mac))
       if str(packet.payload.dstip) in self.ip_to_mac.keys():
         # then forward
-        rt_entry = self.SearchRoutingTable(packet.payload.dstip)
+        rt_entry = self.SearchRoutingTable(str(packet.payload.dstip))
         out_port = rt_entry[4]
         src_mac = self.selfport_to_mac[out_port]
         packet.src = EthAddr(src_mac)
@@ -186,7 +187,7 @@ class Tutorial (object):
         self.resend_packet(packet, self.mac_to_port[self.ip_to_mac[str(packet.payload.dstip)]])
       else:
         # deepcopy packet and put it in the queue?
-        self.msg_queue.append(deepcopy(packet))
+        #self.msg_queue.append(deepcopy(packet))
         arp_request = arp()
         dst_ip = str(packet.payload.dstip)
         rt_entry = self.SearchRoutingTable(dst_ip)
