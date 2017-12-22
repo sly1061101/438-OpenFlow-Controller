@@ -143,33 +143,33 @@ class Tutorial (object):
 
 
     # if get ARP REQUEST packet
+    if packet.type == APR_TYPE :
+       if (packet.payload.opcode == arp.REQUEST):
+          tmpl1Eth = str(packet.src)
+          packet.src = EthAddr(str(packet.dst))
+          packet.dst = EthAddr(tmpl1Eth)
 
-    if (packet.payload.opcode == arp.REQUEST):
-      tmpl1Eth = str(packet.src)
-      packet.src = EthAddr(str(packet.dst))
-      packet.dst = EthAddr(tmpl1Eth)
+          tmpl2Eth = str(packet.payload.hwsrc)
+          packet.payload.hwsrc = EthAddr("04:ea:be:02:07:01")
+          packet.payload.hwdst = EthAddr(tmpl2Eth)
 
-      tmpl2Eth = str(packet.payload.hwsrc)
-      packet.payload.hwsrc = EthAddr("04:ea:be:02:07:01")
-      packet.payload.hwdst = EthAddr(tmpl2Eth)
+          tmpl2ip = str(packet.payload.protosrc)
+          packet.payload.protosrc = IPAddr(str(packet.payload.protodst))
+          packet.payload.protodst = IPAddr(tmpl2ip)
+          packet.payload.opcode = arp.REPLY
 
-      tmpl2ip = str(packet.payload.protosrc)
-      packet.payload.protosrc = IPAddr(str(packet.payload.protodst))
-      packet.payload.protodst = IPAddr(tmpl2ip)
-      packet.payload.opcode = arp.REPLY
-
-      self.resend_packet(packet, packet_in.in_port)
-      return
-
-    if (packet.payload.opcode == arp.REPLY):
-      self.ip_to_port[str(packet.payload.protosrc)] = packet_in_inport
-      for i in range(len(self.msg_queue)):
-        if msg_queue[i].payload.dstip  == packet.payload.protosrc :
-          msg_queue[i].dst = packet.payload.hwsrc
-          msg_queue[i].src = self.selfport_to_mac[packet_in.in_port]
-          self.resend_packet(msg_queue[i],packet_in.in_port)
-          del self.msg_queue[i]
+          self.resend_packet(packet, packet_in.in_port)
           return
+
+      if (packet.payload.opcode == arp.REPLY):
+        self.ip_to_port[str(packet.payload.protosrc)] = packet_in_inport
+        for i in range(len(self.msg_queue)):
+          if msg_queue[i].payload.dstip  == packet.payload.protosrc :
+            msg_queue[i].dst = packet.payload.hwsrc
+            msg_queue[i].src = self.selfport_to_mac[packet_in.in_port]
+            self.resend_packet(msg_queue[i],packet_in.in_port)
+            del self.msg_queue[i]
+            return
 
     if (packet.payload.type == ethernet.IP_TYPE):  # if it is IP packet
       # 1. if Ip is known 
