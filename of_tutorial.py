@@ -162,11 +162,11 @@ class Tutorial (object):
         return
 
       if (packet.payload.opcode == arp.REPLY):
-        self.mac_to_port[str(packet.payload.hwsrc)] = packet_in_inport
+        self.mac_to_port[str(packet.payload.hwsrc)] = packet_in.in_port
         for i in range(len(self.msg_queue)):
           if msg_queue[i].payload.dstip  == packet.payload.protosrc :
             msg_queue[i].dst = packet.payload.hwsrc
-            msg_queue[i].src = self.selfport_to_mac[packet_in.in_port]
+            msg_queue[i].src = EthAddr(self.selfport_to_mac[packet_in.in_port])
             self.resend_packet(msg_queue[i],packet_in.in_port)
             del self.msg_queue[i]
             return
@@ -182,15 +182,15 @@ class Tutorial (object):
         # send ARP request
         # TODO:
         arp_request = arp()
-        arp_request.hwsrc = self.selfport_to_mac[self.ip_to_port[packet.payload.dstip]]
+        arp_request.hwsrc = EthAddr(self.selfport_to_mac[self.ip_to_port[packet.payload.dstip]])
         arp_request.hwdst = EthAddr("ff:ff:ff:ff:ff:ff")
         arp_request.opcode = arp.REQUEST
-        arp_request.protosrc = self.selfport_to_ip[packet_in.in_port]
+        arp_request.protosrc = IPAddr(self.selfport_to_ip[packet_in.in_port])
         arp_request.protodst = packet.payload.dstip
         ether = ethernet()
         ether.type = ethernet.ARP_REQUEST
         ether.dst = packet.src
-        ether.src = self.selfport_to_mac[packet_in.in_port]
+        ether.src = EthAddr(self.selfport_to_mac[packet_in.in_port])
         ether.payload = arp_reply
 
 
