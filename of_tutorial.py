@@ -25,7 +25,8 @@ from pox.core import core
 import pox.openflow.libopenflow_01 as of
 from pox.lib.packet.arp import arp
 from pox.lib.addresses import IPAddr, EthAddr
-
+from pox.lib.packet.ethernet import ethernet
+from copy import deepcopy
 log = core.getLogger()
 
 
@@ -46,8 +47,11 @@ class Tutorial (object):
     # Use this table to keep track of which ethernet address is on
     # which switch port (keys are MACs, values are ports).
     self.mac_to_port = {}
-
-
+    self.ip_to_port = {}
+    self.msg_queue = []
+    self.routing_table = [['10.0.1.100/24','10.0.1.100','s1-eth1','10.0.1.1',1],['10.0.2.100/24', '10.0.2.100', 's1-eth2', '10.0.2.1', 2],['10.0.3.100/24', '10.0.3.100', 's1-eth3', '10.0.3.1', 3]]
+    self.selfport_to_ip = {1:'10.0.1.1',2:'10.0.1.2',3:'10.0.1.3'}
+    self.selfport_to_mac = {1:'04:ea:be:02:07:01',2:'04:ea:be:02:07:02',3:'04:ea:be:02:07:03'}
   def resend_packet (self, packet_in, out_port):
     """
     Instructs the switch to resend a packet that it had sent to us.
@@ -139,6 +143,7 @@ class Tutorial (object):
 
 
     # if get ARP REQUEST packet
+
     if (packet.payload.opcode == arp.REQUEST):
       tmpl1Eth = str(packet.src)
       packet.src = EthAddr(str(packet.dst))
@@ -154,6 +159,42 @@ class Tutorial (object):
       packet.payload.opcode = arp.REPLY
 
       self.resend_packet(packet, packet_in.in_port)
+      return
+
+    if (packet.payload.opcode == arp.REPLY):
+      self.ip_to_port[str(packet.payload.protosrc)] = packet_in_inport
+      for i in range(len(self.msg_queue)):
+        if msg_queue[i].payload.dstip  == packet.payload.protosrc :
+          msg_queue[i].dst = packet.payload.hwsrc
+          msg_queue[i].src = self.selfport_to_mac[packet_in.in_port]
+          self.resend_packet(msg_queue[i],packet_in.in_port)
+          del self.msg_queue[i]
+          return
+
+    if (packet.payload.type == ethernet.IP_TYPE):  # if it is IP packet
+      # 1. if Ip is known 
+      if packet.payload.protodst in self.ip_to_port.keys():
+        # then forward
+        self.resend_packet(packet, self.ip_to_port[str(packet.payload.protodst)])
+      else:
+        # deepcopy packet and put it in the queue?
+        self.msg_queue.append(deepcopy(packet))
+        # send ARP request
+        # TODO:
+        arp_request = arp()
+        arp_request.hwsrc = packet_in.  self.mac_addr
+        arp_request.hwdst = EthAddr("ff:ff:ff:ff:ff:ff")
+        arp_request.opcode = arp.REQUEST
+        arp_request.protosrc = self.selfport_to_ip[packet_in.in_port]
+        arp_request.protodst = packet.payload.dstip
+        ether = ethernet()
+        ether.type = ethernet.ARP_REQUEST
+        ether.dst = packet.src
+        ether.src = self.selfport_to_mac[packet_in.in_port]
+        ether.payload = arp_reply
+
+
+
 
 
   def _handle_PacketIn (self, event):
