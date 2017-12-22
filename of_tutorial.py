@@ -152,7 +152,7 @@ class Tutorial (object):
         packet.dst = EthAddr(tmpl1Eth)
 
         tmpl2Eth = str(packet.payload.hwsrc)
-        packet.payload.hwsrc = EthAddr("04:ea:be:02:07:01")
+        packet.payload.hwsrc = EthAddr(self.selfport_to_mac[packet_in.in_port])
         packet.payload.hwdst = EthAddr(tmpl2Eth)
 
         tmpl2ip = str(packet.payload.protosrc)
@@ -161,47 +161,39 @@ class Tutorial (object):
         packet.payload.opcode = arp.REPLY
 
         self.resend_packet(packet, packet_in.in_port)
-  return
+        return
 
       if (packet.payload.opcode == arp.REPLY):
-  log.debug("Record")
-  log.debug(str(packet.payload.protosrc))
-  log.debug(str(packet.src))
-  log.debug(packet_in.in_port)
-  self.mac_to_port[str(packet.src)] = packet_in.in_port
-        self.ip_to_mac[str(packet.payload.protosrc)] = deepcopy(str(packet.src))
-  log.debug(self.mac_to_port[str(packet.src)])
-  log.debug(self.ip_to_mac[str(packet.payload.protosrc)]) 
+        self.mac_to_port[str(packet.src)] = packet_in.in_port
+        self.ip_to_mac[str(packet.payload.protosrc)] = deepcopy(str(packet.payload.hwsrc))
         for i in range(len(self.msg_queue)):
           if self.msg_queue[i].payload.dstip  == packet.payload.protosrc :
             self.msg_queue[i].dst = packet.payload.hwsrc
             self.msg_queue[i].src = EthAddr(self.selfport_to_mac[packet_in.in_port])
             self.resend_packet(self.msg_queue[i],packet_in.in_port)
             del self.msg_queue[i]
-      log.debug("Forward queued packet")
-            return
-  log.debug("Not found msg in queue")
-  return
+        return
 
     if (packet.type == ethernet.IP_TYPE):  # if it is IP packet
       # 1. if Ip is known
-      log.debug("Check check") 
       if str(packet.payload.dstip) in self.ip_to_mac.keys():
         # then forward
-  packet.dst = EthAddr(self.ip_to_mac[str(packet.payload.dstip)])
+        rt_entry = self.SearchRoutingTable(packet.payload.dstip)
+        out_port = rt_entry[4]
+        src_mac = self.selfport_to_mac[out_port]
+        packet.src = EthAddr(src_mac)
+        packet.dst = EthAddr(self.ip_to_mac[str(packet.payload.dstip)])
         self.resend_packet(packet, self.mac_to_port[self.ip_to_mac[str(packet.payload.dstip)]])
-  log.debug('Forward IP packet')
       else:
         # deepcopy packet and put it in the queue?
-  log.debug("Queue packet and ARP request")
-  self.msg_queue.append(deepcopy(packet))
+        self.msg_queue.append(deepcopy(packet))
         arp_request = arp()
-  dst_ip = str(packet.payload.dstip)
+        dst_ip = str(packet.payload.dstip)
         rt_entry = self.SearchRoutingTable(dst_ip)
         out_port = rt_entry[4]
         src_mac = self.selfport_to_mac[out_port]
         src_ip = rt_entry[3]
-  dst_mac = "ff:ff:ff:ff:ff:ff"
+        dst_mac = "ff:ff:ff:ff:ff:ff"
         arp_request.hwsrc = EthAddr(src_mac)
         arp_request.hwdst = EthAddr(dst_mac)
         arp_request.opcode = arp.REQUEST
@@ -211,8 +203,8 @@ class Tutorial (object):
         ether.type = ethernet.ARP_TYPE
         ether.dst = EthAddr(dst_mac)
         ether.src = EthAddr(src_mac)
-  ether.payload = arp_request
-  self.resend_packet(ether,rt_entry[4])
+        ether.payload = arp_request
+        self.resend_packet(ether, out_port)
 
   def SearchRoutingTable(self,keyword):
     for x in self.routing_table:
