@@ -47,7 +47,7 @@ class Tutorial (object):
     # Use this table to keep track of which ethernet address is on
     # which switch port (keys are MACs, values are ports).
     self.mac_to_port = {}
-    self.ip_to_port = {}
+    self.ip_to_port = {'10.0.1.100':1,'10.0.2.100':2,'10.0.3.100':3}
     self.msg_queue = []
     self.routing_table = [['10.0.1.100/24','10.0.1.100','s1-eth1','10.0.1.1',1],['10.0.2.100/24', '10.0.2.100', 's1-eth2', '10.0.2.1', 2],['10.0.3.100/24', '10.0.3.100', 's1-eth3', '10.0.3.1', 3]]
     self.selfport_to_ip = {1:'10.0.1.1',2:'10.0.1.2',3:'10.0.1.3'}
@@ -143,26 +143,26 @@ class Tutorial (object):
 
 
     # if get ARP REQUEST packet
-    if packet.type == APR_TYPE :
-       if (packet.payload.opcode == arp.REQUEST):
-          tmpl1Eth = str(packet.src)
-          packet.src = EthAddr(str(packet.dst))
-          packet.dst = EthAddr(tmpl1Eth)
+    if packet.type == ethernet.APR_TYPE :
+      if (packet.payload.opcode == arp.REQUEST):
+        tmpl1Eth = str(packet.src)
+        packet.src = EthAddr(str(packet.dst))
+        packet.dst = EthAddr(tmpl1Eth)
 
-          tmpl2Eth = str(packet.payload.hwsrc)
-          packet.payload.hwsrc = EthAddr("04:ea:be:02:07:01")
-          packet.payload.hwdst = EthAddr(tmpl2Eth)
+        tmpl2Eth = str(packet.payload.hwsrc)
+        packet.payload.hwsrc = EthAddr("04:ea:be:02:07:01")
+        packet.payload.hwdst = EthAddr(tmpl2Eth)
 
-          tmpl2ip = str(packet.payload.protosrc)
-          packet.payload.protosrc = IPAddr(str(packet.payload.protodst))
-          packet.payload.protodst = IPAddr(tmpl2ip)
-          packet.payload.opcode = arp.REPLY
+        tmpl2ip = str(packet.payload.protosrc)
+        packet.payload.protosrc = IPAddr(str(packet.payload.protodst))
+        packet.payload.protodst = IPAddr(tmpl2ip)
+        packet.payload.opcode = arp.REPLY
 
-          self.resend_packet(packet, packet_in.in_port)
-          return
+        self.resend_packet(packet, packet_in.in_port)
+        return
 
       if (packet.payload.opcode == arp.REPLY):
-        self.ip_to_port[str(packet.payload.protosrc)] = packet_in_inport
+        self.mac_to_port[str(packet.payload.hwsrc)] = packet_in_inport
         for i in range(len(self.msg_queue)):
           if msg_queue[i].payload.dstip  == packet.payload.protosrc :
             msg_queue[i].dst = packet.payload.hwsrc
@@ -173,16 +173,16 @@ class Tutorial (object):
 
     if (packet.payload.type == ethernet.IP_TYPE):  # if it is IP packet
       # 1. if Ip is known 
-      if packet.payload.protodst in self.ip_to_port.keys():
+      if packet.payload.hwdst in self.mac_to_port.keys():
         # then forward
-        self.resend_packet(packet, self.ip_to_port[str(packet.payload.protodst)])
+        self.resend_packet(packet, self.mac_to_port[str(packet.payload.hwdst)])
       else:
         # deepcopy packet and put it in the queue?
         self.msg_queue.append(deepcopy(packet))
         # send ARP request
         # TODO:
         arp_request = arp()
-        arp_request.hwsrc = packet_in.  self.mac_addr
+        arp_request.hwsrc = self.selfport_to_mac[self.ip_to_port[packet.payload.dstip]]
         arp_request.hwdst = EthAddr("ff:ff:ff:ff:ff:ff")
         arp_request.opcode = arp.REQUEST
         arp_request.protosrc = self.selfport_to_ip[packet_in.in_port]
