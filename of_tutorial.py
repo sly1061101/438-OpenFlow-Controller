@@ -48,6 +48,7 @@ class Tutorial (object):
     # which switch port (keys are MACs, values are ports).
     self.mac_to_port = {}
     self.ip_to_port = {'10.0.1.100':1,'10.0.2.100':2,'10.0.3.100':3}
+    self.ip_to_mac = {}
     self.msg_queue = []
     self.routing_table = [['10.0.1.100/24','10.0.1.100','s1-eth1','10.0.1.1',1],['10.0.2.100/24', '10.0.2.100', 's1-eth2', '10.0.2.1', 2],['10.0.3.100/24', '10.0.3.100', 's1-eth3', '10.0.3.1', 3]]
     self.selfport_to_ip = {1:'10.0.1.1',2:'10.0.1.2',3:'10.0.1.3'}
@@ -143,7 +144,7 @@ class Tutorial (object):
 
 
     # if get ARP REQUEST packet
-    if packet.type == ethernet.APR_TYPE :
+    if packet.type == ethernet.ARP_TYPE :
       if (packet.payload.opcode == arp.REQUEST):
         tmpl1Eth = str(packet.src)
         packet.src = EthAddr(str(packet.dst))
@@ -162,7 +163,8 @@ class Tutorial (object):
         return
 
       if (packet.payload.opcode == arp.REPLY):
-        self.mac_to_port[str(packet.payload.hwsrc)] = packet_in.in_port
+        self.mac_to_port[str(packet.payload.hwsrc)] = str(packet_in.in_port)
+        self.ip_to_mac[str(packet.payload.srcip)] = str(packet.src) 
         for i in range(len(self.msg_queue)):
           if msg_queue[i].payload.dstip  == packet.payload.protosrc :
             msg_queue[i].dst = packet.payload.hwsrc
@@ -171,9 +173,9 @@ class Tutorial (object):
             del self.msg_queue[i]
             return
 
-    if (packet.payload.type == ethernet.IP_TYPE):  # if it is IP packet
+    if (packet.type == ethernet.IP_TYPE):  # if it is IP packet
       # 1. if Ip is known 
-      if packet.payload.hwdst in self.mac_to_port.keys():
+      if packet.dst. in self.mac_to_port.keys():
         # then forward
         self.resend_packet(packet, self.mac_to_port[str(packet.payload.hwdst)])
       else:
